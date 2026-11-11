@@ -2,7 +2,7 @@ import unittest
 import json
 import os
 import tempfile
-
+from unittest.mock import patch
 
 from main import (
     reserve_product,
@@ -193,19 +193,41 @@ class TestSafeStockReservation(unittest.TestCase):
 
 # Test 17: Serialization failure preserves original JSON
 
-    def test_save_inventory_failure(self):
+    def test_save_inventory_serialization_failure(self):
         with tempfile.TemporaryDirectory() as folder:
             filename = os.path.join(folder, "inventory.json")
-
             original_inventory = {"pen": 10}
 
             with open(filename, "w", encoding="utf-8") as file:
                 json.dump(original_inventory, file)
 
-            invalid_inventory = {"pen": 10, "invalid": {1, 2, 3}}
+            with patch("main.json.dump", side_effect=TypeError("mock serialization failure")):
+                with self.assertRaises(TypeError) as error:
+                    save_inventory(self.inventory, filename)
 
-            with self.assertRaises(TypeError):
-                save_inventory(invalid_inventory, filename)
+            self.assertIn("Serialization failed", str(error.exception))
+            self.assertEqual(load_inventory(filename), original_inventory)
+
+            temp_files = [
+                file for file in os.listdir(folder)
+                if file.endswith(".temp")
+            ]
+
+            self.assertEqual(temp_files, [])
+
+
+# Test 18: Invalid inventory data is not saved
+
+    def test_save_inventory_invalid_data(self):
+        with tempfile.TemporaryDirectory() as folder:
+            filename = os.path.join(folder, "inventory.json")
+            original_inventory = {"pen": 10}
+
+            with open(filename, "w", encoding="utf-8") as file:
+                json.dump(original_inventory, file)
+
+            with self.assertRaises(ValueError):
+                save_inventory({"pen": -5}, filename)
 
             self.assertEqual(load_inventory(filename), original_inventory)
 

@@ -10,12 +10,12 @@ The main purpose of this project is to make sure that stock is updated correctly
 
 - Reserve products from available stock.
 - Check product availability before reservation.
-- Validate reservation quantities.
+- Validate reservation quantities and inventory data.
 - Handle insufficient stock and missing products.
 - Use custom exceptions for different errors.
-- Validate inventory data before using it.
 - Load and save inventory data using JSON.
 - Save inventory safely using a temporary file.
+- Keep the original inventory file unchanged if validation or saving fails.
 - Restore event records if a reservation fails.
 - Run automated tests to check different success and failure cases.
 
@@ -65,11 +65,13 @@ cd Safe-Stock-Reservation-System
 python main.py
 ```
 
+This command runs 10 built-in checks and displays whether each check passes. The file contains the reservation functions; it does not currently provide an interactive menu for entering reservations.
+
 ## Testing
 
-The project includes 17 automated tests to check different parts of the reservation system.
+The project includes **18 automated unit tests** in `tests/test_analysis.py`, using Python's built-in `unittest` framework.
 
-The tests cover:
+The tests check:
 
 1. Successful product reservation.
 2. Zero reservation quantity.
@@ -88,14 +90,17 @@ The tests cover:
 15. Successful file-based reservation.
 16. Reservation failure without changing original data.
 17. Serialization failure without damaging the original file.
+18. Invalid inventory data is rejected before saving.
 
-To run the automated tests, use:
+**Run Automated Tests:**
+
+To run all automated tests, use:
 
 ```bash
-py -m unittest tests/test_analysis.py -v 
+py -m unittest discover -s tests -v
 ```
 
-Each test checks whether the system behaves correctly in different situations.
+The project also contains **10 built-in assertion-based checks** inside `main.py`. These run when `python main.py` is executed. They are separate from the 18 `unittest` test cases.
 
 ## What I Learned
 
@@ -113,6 +118,7 @@ While working on this project, I practiced:
 ## Future Improvements
 
 - Add a product management system.
+- Add an interactive menu for making reservations.
 - Add reservation history.
 - Connect the system with a database.
 - Add support for multiple users.

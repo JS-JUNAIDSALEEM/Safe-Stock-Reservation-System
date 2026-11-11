@@ -1,4 +1,3 @@
-
 # Project: Safe Stock Reservation System
 # This project reserves product stock safely and saves changes in a JSON file.
 
@@ -11,11 +10,14 @@ import tempfile
 class InventoryError(Exception):
     pass
 
+
 class InvalidQuantityError(InventoryError):
     pass
 
+
 class InsufficientStockError(InventoryError):
     pass
+
 
 class ProductNotFoundError(InventoryError):
     pass
@@ -91,10 +93,14 @@ def load_inventory(filename):
 
 def save_inventory(data, filename):
 
-    directory = os.path.dirname(os.path.abspath(filename))
     temp_filename = None
 
     try:
+        # Validate data before creating or replacing the inventory file.
+        validate_inventory(data)
+
+        directory = os.path.dirname(os.path.abspath(filename))
+
         with tempfile.NamedTemporaryFile(
             mode="w",
             encoding="utf-8",
@@ -106,14 +112,14 @@ def save_inventory(data, filename):
 
             temp_filename = file.name
 
-            json.dump(data, file, indent=4)
+            try:
+                json.dump(data, file, indent=4)
+            except TypeError as error:
+                raise TypeError(
+                    f"Serialization failed. Data contains non-serializable objects: {error}"
+                )
 
         os.replace(temp_filename, filename)
-
-    except TypeError as error:
-        raise TypeError(
-            f"Serialization failed. Data contains non-serializable objects: {error}"
-        )
 
     finally:
         if temp_filename and os.path.exists(temp_filename):
@@ -147,9 +153,9 @@ def process_reservation(filename, name, quantity, events):
 # TEST 1: Successful reservation
 
 def test_successful_reservation():
-    inventory = {'pen': 10}
+    inventory = {"pen": 10}
     events = []
-    result = reserve_product(inventory, 'pen', 4, events)
+    result = reserve_product(inventory, "pen", 4, events)
 
     assert result == 6
     assert inventory == {"pen": 6}
@@ -159,13 +165,13 @@ def test_successful_reservation():
 # TEST 2: Invalid quantity
 
 def test_reserve_product_invalid_quantity():
-    inventory = {'pen': 10}
+    inventory = {"pen": 10}
     events = []
     inv = inventory.copy()
     eve = events.copy()
 
     try:
-        reserve_product(inventory, 'pen', 0, events)
+        reserve_product(inventory, "pen", 0, events)
         assert False, "Expected InvalidQuantityError."
 
     except InvalidQuantityError as error:
@@ -244,7 +250,6 @@ def test_process_reservation_failure():
         with open(filename, "w", encoding="utf-8") as file:
             json.dump(original_data, file)
 
-        # Ab yeh poora block 'with' ke andar hai, file delete nahi hogi:
         try:
             process_reservation(filename, "pen", 15, events)
             assert False, "Expected InsufficientStockError"
@@ -281,26 +286,25 @@ def test_process_reservation_invalid_quantity():
         assert events == original_events
 
 
-# TEST 8: Serialization failure preserves original JSON
+# TEST 8: Invalid inventory data is not saved
 
-def test_save_inventory_serialization_failure():
+def test_save_inventory_invalid_data():
 
     with tempfile.TemporaryDirectory() as folder:
         filename = os.path.join(folder, "inventory.json")
-
         original_data = {"pen": 10}
 
         with open(filename, "w", encoding="utf-8") as file:
             json.dump(original_data, file)
 
-        invalid_data = {"pen": 10, "invalid_field": {1, 2, 3}}
+        invalid_data = {"pen": -5}
 
         try:
             save_inventory(invalid_data, filename)
-            assert False, "Expected TypeError"
+            assert False, "Expected ValueError"
 
-        except TypeError as error:
-            assert "Serialization failed" in str(error)
+        except ValueError:
+            pass
 
         assert load_inventory(filename) == original_data
 
@@ -356,7 +360,7 @@ def main():
         test_process_reservation_success,
         test_process_reservation_failure,
         test_process_reservation_invalid_quantity,
-        test_save_inventory_serialization_failure,
+        test_save_inventory_invalid_data,
         test_load_invalid_json,
         test_load_missing_file,
     ]
