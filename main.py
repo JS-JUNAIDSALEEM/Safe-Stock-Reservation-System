@@ -237,7 +237,7 @@ def test_process_reservation_success():
         assert events == ["reserved"]
 
 
-# TEST 6: Validation failure preserves file and events
+# TEST 6: Insufficient stock preserves file and events
 
 def test_process_reservation_failure():
 
