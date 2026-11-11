@@ -34,7 +34,7 @@ The main purpose of this project is to make sure that stock is updated correctly
 Safe-Stock-Reservation-System/
 │
 ├── tests/
-│   └── test_reservation.py
+│   └── test_analysis.py
 │
 ├── Output/
 │   └── Reservation Tests.png
