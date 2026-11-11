@@ -1,3 +1,4 @@
+
 # Project: Safe Stock Reservation System
 # This project reserves product stock safely and saves changes in a JSON file.
 
@@ -9,22 +10,53 @@ import tempfile
 
 class InventoryError(Exception):
     pass
+
 class InvalidQuantityError(InventoryError):
     pass
+
 class InsufficientStockError(InventoryError):
     pass
+
 class ProductNotFoundError(InventoryError):
     pass
+
+
+# VALIDATE INVENTORY
+
+def validate_inventory(data):
+
+    if not isinstance(data, dict):
+        raise ValueError("Inventory data must be a JSON object.")
+
+    for name, stock in data.items():
+
+        if not isinstance(name, str) or not name.strip():
+            raise ValueError("Product names must be non-empty strings.")
+
+        if isinstance(stock, bool) or not isinstance(stock, int) or stock < 0:
+            raise ValueError(f"Stock for '{name}' must be a non-negative whole number.")
+
+    return data
+
 
 # RESERVE PRODUCT
 
 def reserve_product(inventory, name, quantity, events):
 
-    if quantity <= 0:
-        raise InvalidQuantityError("Quantity must be greater than zero.")
+    if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity <= 0:
+        raise InvalidQuantityError("Quantity must be a positive whole number.")
+
+    if not isinstance(events, list):
+        raise TypeError("Events must be a list.")
+
+    validate_inventory(inventory)
+
+    if not isinstance(name, str) or not name.strip():
+        raise ProductNotFoundError("Product name must be a non-empty string.")
 
     if name not in inventory:
         raise ProductNotFoundError(f"Product '{name}' not found in inventory.")
+
     stock = inventory[name]
 
     if quantity > stock:
@@ -37,13 +69,16 @@ def reserve_product(inventory, name, quantity, events):
 
     return remaining
 
+
 # LOAD INVENTORY FROM JSON FILE
 
 def load_inventory(filename):
 
     try:
         with open(filename, "r", encoding="utf-8") as file:
-            return json.load(file)
+            data = json.load(file)
+
+        return validate_inventory(data)
 
     except FileNotFoundError:
         raise FileNotFoundError("Inventory file not found.")
@@ -51,9 +86,10 @@ def load_inventory(filename):
     except json.JSONDecodeError as error:
         raise ValueError(f"Invalid JSON format in '{filename}': {error}")
 
+
 # SAVE INVENTORY SAFELY
 
-def save_inventory(data,filename):
+def save_inventory(data, filename):
 
     directory = os.path.dirname(os.path.abspath(filename))
     temp_filename = None
@@ -91,6 +127,9 @@ def save_inventory(data,filename):
 
 def process_reservation(filename, name, quantity, events):
 
+    if not isinstance(events, list):
+        raise TypeError("Events must be a list.")
+
     events_backup = list(events)
 
     try:
@@ -104,10 +143,11 @@ def process_reservation(filename, name, quantity, events):
         events[:] = events_backup
         raise
 
+
 # TEST 1: Successful reservation
 
 def test_successful_reservation():
-    inventory = {'pen' : 10}
+    inventory = {'pen': 10}
     events = []
     result = reserve_product(inventory, 'pen', 4, events)
 
@@ -115,10 +155,11 @@ def test_successful_reservation():
     assert inventory == {"pen": 6}
     assert events == ["reserved"]
 
+
 # TEST 2: Invalid quantity
 
 def test_reserve_product_invalid_quantity():
-    inventory = {'pen' : 10}
+    inventory = {'pen': 10}
     events = []
     inv = inventory.copy()
     eve = events.copy()
@@ -128,10 +169,11 @@ def test_reserve_product_invalid_quantity():
         assert False, "Expected InvalidQuantityError."
 
     except InvalidQuantityError as error:
-        assert str(error) == "Quantity must be greater than zero."
+        assert str(error) == "Quantity must be a positive whole number."
 
     assert inventory == inv
     assert events == eve
+
 
 # TEST 3: Insufficient stock
 
@@ -143,12 +185,14 @@ def test_reserve_product_insufficient_stock():
 
     try:
         reserve_product(inventory, "pen", 15, events)
-        assert False,"Expected InsufficientStockError."
+        assert False, "Expected InsufficientStockError."
+
     except InsufficientStockError as error:
         assert str(error) == "Insufficient stock"
 
     assert inventory == inv
     assert events == eve
+
 
 # TEST 4: Product not found
 
@@ -166,24 +210,26 @@ def test_product_not_found():
     assert inventory == {"pen": 10}
     assert events == []
 
+
 # TEST 5: Successful file-based reservation
 
 def test_process_reservation_success():
 
     with tempfile.TemporaryDirectory() as folder:
-        filename = os.path.join(folder,"inventory.json")
+        filename = os.path.join(folder, "inventory.json")
 
-        with open(filename, "w") as file:
+        with open(filename, "w", encoding="utf-8") as file:
             json.dump({"pen": 10}, file)
 
         events = []
 
-        result = process_reservation(filename,"pen",4,events)
+        result = process_reservation(filename, "pen", 4, events)
         saved_inventory = load_inventory(filename)
 
         assert result == 6
         assert saved_inventory == {"pen": 6}
         assert events == ["reserved"]
+
 
 # TEST 6: Validation failure preserves file and events
 
@@ -198,15 +244,17 @@ def test_process_reservation_failure():
         with open(filename, "w", encoding="utf-8") as file:
             json.dump(original_data, file)
 
-        #  Ab yeh poora block 'with' ke andar hai, file delete nahi hogi:
+        # Ab yeh poora block 'with' ke andar hai, file delete nahi hogi:
         try:
             process_reservation(filename, "pen", 15, events)
             assert False, "Expected InsufficientStockError"
+
         except InsufficientStockError:
             pass
 
         assert load_inventory(filename) == original_data
         assert events == ["previous_event"]
+
 
 # TEST 7: Invalid quantity in file-based reservation
 
@@ -227,10 +275,11 @@ def test_process_reservation_invalid_quantity():
             assert False, "Expected InvalidQuantityError"
 
         except InvalidQuantityError as error:
-            assert str(error) == "Quantity must be greater than zero."
+            assert str(error) == "Quantity must be a positive whole number."
 
         assert load_inventory(filename) == original_data
         assert events == original_events
+
 
 # TEST 8: Serialization failure preserves original JSON
 
@@ -239,7 +288,6 @@ def test_save_inventory_serialization_failure():
     with tempfile.TemporaryDirectory() as folder:
         filename = os.path.join(folder, "inventory.json")
 
-        temp_filename = filename + ".temp"
         original_data = {"pen": 10}
 
         with open(filename, "w", encoding="utf-8") as file:
@@ -262,6 +310,7 @@ def test_save_inventory_serialization_failure():
         ]
         assert temp_files == []
 
+
 # TEST 9: Invalid JSON file
 
 def test_load_invalid_json():
@@ -279,6 +328,7 @@ def test_load_invalid_json():
         except ValueError as error:
             assert "Invalid JSON format" in str(error)
 
+
 # TEST 10: Missing inventory file
 
 def test_load_missing_file():
@@ -293,9 +343,11 @@ def test_load_missing_file():
         except FileNotFoundError as error:
             assert str(error) == "Inventory file not found."
 
+
 # OUTPUT SECTION: Run All Tests
 
-if __name__ == "__main__":
+def main():
+
     tests = [
         test_successful_reservation,
         test_reserve_product_invalid_quantity,
@@ -316,3 +368,7 @@ if __name__ == "__main__":
         print(f"PASS: {test.__name__}")
 
     print("\n===== ALL 10 TESTS PASSED =====")
+
+
+if __name__ == "__main__":
+    main()

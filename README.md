@@ -13,10 +13,11 @@ The main purpose of this project is to make sure that stock is updated correctly
 - Validate reservation quantities.
 - Handle insufficient stock and missing products.
 - Use custom exceptions for different errors.
+- Validate inventory data before using it.
 - Load and save inventory data using JSON.
 - Save inventory safely using a temporary file.
 - Restore event records if a reservation fails.
-- Run tests to check different success and failure cases.
+- Run automated tests to check different success and failure cases.
 
 ## Technologies Used
 
@@ -25,12 +26,18 @@ The main purpose of this project is to make sure that stock is updated correctly
 - File Handling
 - Exception Handling
 - Temporary Files
-- Assertions for Testing
+- Unittest for Automated Testing
 
 ## Project Structure
 
 ```text
 Safe-Stock-Reservation-System/
+│
+├── tests/
+│   └── test_reservation.py
+│
+├── Output/
+│   └── Reservation Tests.png
 │
 ├── main.py
 ├── README.md
@@ -60,20 +67,33 @@ python main.py
 
 ## Testing
 
-The project includes 10 tests to check different parts of the reservation system.
+The project includes 17 automated tests to check different parts of the reservation system.
 
 The tests cover:
 
 1. Successful product reservation.
-2. Invalid reservation quantity.
-3. Insufficient stock.
-4. Product not found.
-5. Successful file-based reservation.
-6. Reservation failure without changing original data.
-7. Invalid quantity in file-based reservation.
-8. Serialization failure.
-9. Invalid JSON file.
-10. Missing inventory file.
+2. Zero reservation quantity.
+3. Negative reservation quantity.
+4. Decimal reservation quantity.
+5. Boolean reservation quantity.
+6. Insufficient stock.
+7. Product not found.
+8. Invalid inventory structure.
+9. Negative stock value.
+10. Invalid stock value.
+11. Invalid event records.
+12. Successful inventory loading.
+13. Invalid JSON file.
+14. Missing inventory file.
+15. Successful file-based reservation.
+16. Reservation failure without changing original data.
+17. Serialization failure without damaging the original file.
+
+To run the automated tests, use:
+
+```bash
+py -m unittest tests/test_analysis.py -v 
+```
 
 Each test checks whether the system behaves correctly in different situations.
 
@@ -84,9 +104,10 @@ While working on this project, I practiced:
 - Creating and using custom exceptions.
 - Working with JSON files in Python.
 - Handling file errors.
+- Validating inventory data.
 - Using temporary files for safer data updates.
 - Managing errors during a reservation process.
-- Writing tests using assertions.
+- Writing automated tests using unittest.
 - Checking that original data remains unchanged when an operation fails.
 
 ## Future Improvements
